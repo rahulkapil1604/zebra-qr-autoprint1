@@ -1,0 +1,37 @@
+name: Build AutoPrint EXE
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download Ahk2Exe
+        run: |
+          Invoke-WebRequest -Uri "https://www.autohotkey.com/download/ahk2exe.zip" -OutFile "ahk2exe.zip"
+          Expand-Archive -Path "ahk2exe.zip" -DestinationPath "$env:RUNNER_TEMP/ahk2exe"
+
+      - name: Compile AHK to EXE
+        run: |
+          $ahk2exe = "$env:RUNNER_TEMP\\ahk2exe\\Ahk2Exe.exe"
+          & $ahk2exe /in autoprint.ahk /out autoprint.exe
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoprint-exe
+          path: autoprint.exe
+
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: autoprint.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
