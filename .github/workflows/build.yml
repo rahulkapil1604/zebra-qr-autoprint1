@@ -1,4 +1,4 @@
-name: Build AutoHotkey EXE
+name: Build AutoPrint EXE
 
 on:
   push:
@@ -10,22 +10,36 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      # 1. कोड clone करें
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Install AutoHotkey v2 (chocolatey)
-      run: choco install autohotkey.portable -y
+      # 2. AutoHotkey installer डाउनलोड और इंस्टॉल करें
+      - name: Install AutoHotkey 1.1 (Silent)
+        run: |
+          Invoke-WebRequest -Uri "https://www.autohotkey.com/download/1.1/AutoHotkey_1.1.37.02_setup.exe" -OutFile "AHKsetup.exe"
+          Start-Process -FilePath .\AHKsetup.exe -ArgumentList "/S" -Wait
 
-    - name: Compile AHK script to EXE
-      run: |
-        $ahk2exe = "${env:ProgramFiles(x86)}\AutoHotkey\Compiler\Ahk2Exe.exe"
-        if (!(Test-Path $ahk2exe)) {
-          throw "Ahk2Exe.exe not found"
-        }
-        & "$ahk2exe" /in zebra-qr-autoprint.ahk /out zebra-qr-autoprint.exe
+      # 3. .ahk को .exe में convert करें
+      - name: Compile AHK to EXE
+        run: |
+          $compilerPath = "C:\Program Files\AutoHotkey\Compiler\Ahk2Exe.exe"
+          if (!(Test-Path $compilerPath)) {
+            throw "Compiler not found at $compilerPath"
+          }
+          & "$compilerPath" /in "autoprint.ahk" /out "autoprint.exe"
 
-    - name: Upload EXE artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: zebra-qr-autoprint-exe
-        path: zebra-qr-autoprint.exe
+      # 4. EXE आर्टिफैक्ट upload करें
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: autoprint-exe
+          path: autoprint.exe
+
+      # 5. GitHub Release पर upload करें
+      - name: Publish to Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: autoprint.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
