@@ -1,8 +1,8 @@
-name: Build AutoPrint EXE
+name: Build AutoHotkey EXE
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -10,28 +10,22 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-      - name: Download Ahk2Exe
-        run: |
-          Invoke-WebRequest -Uri "https://www.autohotkey.com/download/ahk2exe.zip" -OutFile "ahk2exe.zip"
-          Expand-Archive -Path "ahk2exe.zip" -DestinationPath "$env:RUNNER_TEMP/ahk2exe"
+    - name: Install AutoHotkey v2 (chocolatey)
+      run: choco install autohotkey.portable -y
 
-      - name: Compile AHK to EXE
-        run: |
-          $ahk2exe = "$env:RUNNER_TEMP\\ahk2exe\\Ahk2Exe.exe"
-          & $ahk2exe /in autoprint.ahk /out autoprint.exe
+    - name: Compile AHK script to EXE
+      run: |
+        $ahk2exe = "${env:ProgramFiles(x86)}\AutoHotkey\Compiler\Ahk2Exe.exe"
+        if (!(Test-Path $ahk2exe)) {
+          throw "Ahk2Exe.exe not found"
+        }
+        & "$ahk2exe" /in zebra-qr-autoprint.ahk /out zebra-qr-autoprint.exe
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: autoprint-exe
-          path: autoprint.exe
-
-      - name: Upload to GitHub Releases
-        uses: softprops/action-gh-release@v2
-        with:
-          files: autoprint.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload EXE artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: zebra-qr-autoprint-exe
+        path: zebra-qr-autoprint.exe
