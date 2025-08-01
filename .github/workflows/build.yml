@@ -2,26 +2,36 @@ name: Build AutoPrint EXE
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
+
     steps:
-    - uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup AutoHotkey
-      uses: crazy-max/ghaction-choco@v3
-      with:
-        args: install autohotkey.portable
+      - name: Download Ahk2Exe
+        run: |
+          Invoke-WebRequest -Uri "https://www.autohotkey.com/download/ahk2exe.zip" -OutFile "ahk2exe.zip"
+          Expand-Archive -Path "ahk2exe.zip" -DestinationPath "$env:RUNNER_TEMP/ahk2exe"
 
-    - name: Compile AHK script to EXE
-      run: |
-        "C:\ProgramData\chocolatey\bin\Ahk2Exe.exe" /in autoprint.ahk /out autoprint.exe
+      - name: Compile AHK to EXE
+        run: |
+          $ahk2exe = "$env:RUNNER_TEMP\\ahk2exe\\Ahk2Exe.exe"
+          & $ahk2exe /in autoprint.ahk /out autoprint.exe
 
-    - name: Upload EXE as artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: autoprint
-        path: autoprint.exe
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: autoprint-exe
+          path: autoprint.exe
+
+      - name: Upload to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          files: autoprint.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
